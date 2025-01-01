@@ -39,7 +39,7 @@ GetFileHashes(){
 
   # hash streams
   local ffmpegOut=
-  if ffmpegOut=$(ffmpeg -i "$1" -v quiet -map 0:v? -map 0:a? -map 0:s? -c copy -f streamhash -hash sha512 -); then
+  if ffmpegOut=$(ffmpeg -i "$1" -v quiet -map "0:v?" -map "0:a?" -map "0:s?" -c copy -f streamhash -hash sha512 -); then
     # organize hashes (stream, type hash)
     while IFS=',' read -r s t h; do
       local val=
@@ -67,13 +67,15 @@ fi
 
 for arg; do
   if [ -f "$arg" ]; then # Handle files
-    echo "File: $arg"
-  elif [ -d "$arg" ]; then # Handle Directories
+    echo "Processing file: $arg"
+    GetFileHashes "$arg"
+  elif [ -d "$arg" ]; then # Handle directories
     # get all files/directories at depth=1, but omit directories
     argDir=("$arg"/*)
     for argFile in "${argDir[@]}"; do
       if [ -f "$argFile" ]; then
-        echo "Directory File: $argFile"
+        echo "Processing directory file: $argFile"
+        GetFileHashes "$argFile"
       fi
     done
   else  # No valid file/directory
@@ -81,3 +83,18 @@ for arg; do
     # exit 1 # Do not exit, just warn and continue
   fi
 done
+
+echo "================================================================================="
+echo "=============================== Output =========================================="
+echo "================================================================================="
+echo "File Hashes: Count: ${#FileHashes[@]}"
+printf '%s\n' "${FileHashes[@]}"
+echo
+echo "Video Stream Hashes: Count: ${#VideoHashes[@]}"
+printf '%s\n' "${VideoHashes[@]}"
+echo
+echo "Audio Stream Hashes: Count: ${#AudioHashes[@]}"
+printf '%s\n' "${AudioHashes[@]}"
+echo
+echo "Subtitle Stream Hashes: Count ${#SubHashes[@]}"
+printf '%s\n' "${SubHashes[@]}"
