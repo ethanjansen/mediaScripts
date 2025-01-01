@@ -14,7 +14,7 @@ Usage(){
   echo "Extract all subtitle streams from input media files."
   echo "Input an array of files or directories to check."
   echo "Directories are depth-1 searched."
-  echo "Depends: makemkv."
+  echo "Depends: mkvtoolnix."
   echo
   echo "Syntax: ffmpegHash.sh <destination folder> <file1> [<file2> <file3>...]"
   echo "Options:"
