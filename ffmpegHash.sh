@@ -4,6 +4,8 @@
 # Requires `ffmpeg`.
 # By: Ethan Jansen
 
+shopt -s nullglob
+
 ################### Global Variables ######################
 
 # Format: "Hash|filename|streamNumber"
@@ -52,23 +54,30 @@ GetFileHashes(){
       esac
     done <<< "${ffmpegOut//SHA512=/}"
   else
-    echo "Error while hashing streams of $1" >&2
+    echo -e "\033[31mError while hashing streams of $1\033[0m" >&2
   fi
 }
 
 ############### Main ####################
-if [ $# -lt 2 ] || [ "$1" = "-h" ]; then
+
+if [ $# -lt 1 ] || [ "$1" = "-h" ]; then
   Usage
   exit 1
 fi
 
 for arg; do
-  if [ -f "$arg" ]; then
+  if [ -f "$arg" ]; then # Handle files
     echo "File: $arg"
-  elif [ -d "$arg" ]; then
-    echo "Directory: $arg"
-  else
-    echo "File/Directory not found: $arg" >&2
+  elif [ -d "$arg" ]; then # Handle Directories
+    # get all files/directories at depth=1, but omit directories
+    argDir=("$arg"/*)
+    for argFile in "${argDir[@]}"; do
+      if [ -f "$argFile" ]; then
+        echo "Directory File: $argFile"
+      fi
+    done
+  else  # No valid file/directory
+    echo -e "\033[31mFile/Directory not found: $arg\033[0m" >&2
     # exit 1 # Do not exit, just warn and continue
   fi
 done
