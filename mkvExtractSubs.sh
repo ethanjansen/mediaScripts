@@ -16,7 +16,7 @@ Usage(){
   echo "Directories are depth-1 searched for mkv files."
   echo "Depends: mkvtoolnix, jq"
   echo
-  echo "Syntax: ffmpegHash.sh <file1.mkv> [<file2.mkv> <file3.mkv>...] <destination folder>"
+  echo "Syntax: mkvExtractSubs.sh <file1.mkv> [<file2.mkv> <file3.mkv>...] <destination folder>"
   echo "Options:"
   echo "-h      Print this help message."
 }
