@@ -21,6 +21,30 @@ Usage(){
   echo "-h      Print this help message."
 }
 
+# Outputs filename extension corresponding to mkvtoolnix subtitle codec
+# Returns nothing for no match (or S_VOBSUB as it is handled automatically by mkvextract)
+GetExtension() {
+  case $1 in
+    "S_HDMV/PGS")
+      echo ".sup";;
+    "S_HDMV/TEXTST")
+      echo ".textst";;
+    "S_KATE")
+      echo ".ogg";;
+    "S_TEXT/SSA" | "S_SSA")
+      echo ".ssa";;
+    "S_TEXT/ASS" | "S_ASS")
+      echo ".ass";;
+    "S_TEXT/UTF8" | "S_TEXT/ASCII")
+      echo ".srt";;
+    # "S_VOBSUB") # This is handled automatically by mkvextract
+    "S_TEXT/USF")
+      echo ".usf";;
+    "S_TEXT/WEBVTT")
+      echo ".vtt";;
+  esac
+}
+
 # Extract subtitles from file.
 # Checks for valid Matroska file and gets subtitle track ids from mkvmerge identify.
 # Prints to stderr if file is not valid.
@@ -29,7 +53,7 @@ Usage(){
 # Extension is chosen automatically by mkvextract (this does not appear to always be the case)
 # Does not return anything.
 ExtractSubs(){
-  local info recognized supported count id idpadded default forced lang filename 
+  local info recognized supported count id idpadded default forced lang codec filename 
   local tracks=()
 
   # strip extension from filename
@@ -61,6 +85,7 @@ ExtractSubs(){
     default="$(echo "$info" | jq -rM ".[$i].properties.default_track")"
     forced="$(echo "$info" | jq -rM ".[$i].properties.forced_track")"
     lang="$(echo "$info" | jq -rM ".[$i].properties.language")"
+    codec="$(echo "$info" | jq -rM ".[$i].properties.codec_id")"
 
     # transform default+forced -> forced
     if [[ "$default" == "true" ]] || [[ "$forced" == "true" ]]; then
@@ -69,10 +94,13 @@ ExtractSubs(){
       forced=""
     fi
 
+    # get output file extension
+    codec="$(GetExtension "$codec")"
+
     # pad id
     idpadded="$(printf '%02d' "$id")"
 
-    tracks+=("${id}:${Destination}/${filename}${forced}_[${lang}]_t${idpadded}")
+    tracks+=("${id}:${Destination}/${filename}${forced}_[${lang}]_t${idpadded}${codec}")
   done
 
   # perform extract
