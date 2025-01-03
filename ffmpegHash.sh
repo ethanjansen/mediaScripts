@@ -84,6 +84,8 @@ PrintConflicts(){
 
   echo "Hash|FileName|StreamNumber|NumberConflicts"
 
+  # this will likely have issues with file names that have a vertical bar :(
+  # this does not happen in my case and am currently too lazy
   for item; do
     IFS=$'|' read -r h _ <<< "$item"
     count=$(printf -- '%s\n' "$@" | grep -cF "$h")
