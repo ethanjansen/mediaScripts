@@ -12,7 +12,7 @@ Destination=
 
 Usage(){
   echo "Extract all subtitle streams from input Matroska files."
-  echo "Output file names: \"sourceName {sub-[<lang code>].t<stream id><.optional forced><.optional commentary>}.<extension>\""
+  echo "Output file names: \"sourceName {sub-t<stream id>.[<lang code>]<.optional forced><.optional commentary>}.<extension>\""
   echo "Input an array of files or directories to check."
   echo "Directories are depth-1 searched for mkv files."
   echo "Depends: mkvtoolnix, jq"
@@ -38,7 +38,8 @@ GetExtension() {
       echo ".ass";;
     "S_TEXT/UTF8" | "S_TEXT/ASCII")
       echo ".srt";;
-    # "S_VOBSUB") # This is handled automatically by mkvextract
+    "S_VOBSUB") # The last extension (following the last period) is automatically replaced by mkvextract for vobsub .sub and .idx files
+      echo ".sub";;
     "S_TEXT/USF")
       echo ".usf";;
     "S_TEXT/WEBVTT")
@@ -50,7 +51,7 @@ GetExtension() {
 # Checks for valid Matroska file and gets subtitle track ids from mkvmerge identify.
 # Prints to stderr if file is not valid.
 # Finally extracts all subtitle tracks (if present) from file.
-# Output file names: "sourceName {sub-[<lang code>].t<stream id><.optional forced><.optional commentary>}.<extension>" 
+# Output file names: "sourceName {sub-t<stream id>.[<lang code>].<optional forced><.optional commentary>}.<extension>" 
 # Extension is chosen automatically by mkvextract (this does not appear to always be the case)
 # Does not return anything.
 ExtractSubs(){
@@ -119,7 +120,7 @@ ExtractSubs(){
     # pad id
     idpadded="$(printf '%02d' "$id")"
 
-    tracks+=("${id}:${Destination}/${filename} {sub-[${lang}].t${idpadded}${forced}${comm}}${codec}")
+    tracks+=("${id}:${Destination}/${filename} {sub-t${idpadded}.[${lang}]${forced}${comm}}${codec}")
   done
 
   # perform extract
