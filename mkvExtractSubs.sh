@@ -71,7 +71,7 @@ ExtractSubs(){
   filename="$(basename "${1%.*}")"
 
   # get file information
-  info="$(mkvmerge -J "$(realpath "$1")")"
+  info="$(mkvmerge -J "$1")"
 
   # check if valid file
   recognized="$(echo "$info" | jq -rM '.container.recognized')"
@@ -124,7 +124,7 @@ ExtractSubs(){
   done
 
   # perform extract
-  mkvextract "$(realpath "$1")" --flush-on-close tracks "${tracks[@]}"
+  mkvextract "$1" --flush-on-close tracks "${tracks[@]}"
 }
 
 ############### Main ####################
