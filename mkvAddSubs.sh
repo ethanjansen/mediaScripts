@@ -29,6 +29,13 @@ Usage(){
   echo "-h      Print this help message."
 }
 
+# Sort input arrays
+# Items could be added out of order (by file, or multiple directories)
+SortArrays(){
+  readarray -t Subtitles < <(printf -- '%s\n' "${Subtitles[@]}" | sort)
+  readarray -t Inputs < <(printf -- '%s\n' "${Inputs[@]}" | sort)
+}
+
 # Test MKV input
 # Ensure it is supported via mkvmerge
 # Check for any existing default/forced subs
@@ -196,6 +203,9 @@ fi
 # test inputs
 ParseMKV
 ParseSub
+
+# sort inputs
+SortArrays
 
 # testing
 printf -- '%s\n' "${Inputs[@]}"
