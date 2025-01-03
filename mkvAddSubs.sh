@@ -41,7 +41,7 @@ SortArrays(){
 # Check for any existing default/forced subs
 ParseMKV(){
   # file info
-  local info 
+  local info title
   # for testing Matroska file
   local recognized supported
   # to test if default/forced sub present
@@ -50,6 +50,7 @@ ParseMKV(){
   # loop through inputs
   for i in "${!Inputs[@]}"; do
     info="$(mkvmerge -J "${Inputs[$i]}")"
+    title="${Inputs[$i]%.*}"
     
     # check if valid
     recognized="$(echo "$info" | jq -rM '.container.recognized')"
@@ -71,8 +72,8 @@ ParseMKV(){
       forced=1
     fi
 
-    # save back to inputs with format: "filename|forced"
-    Inputs[i]="${Inputs[$i]}|$forced"
+    # save back to inputs with format: "filename|forced|title"
+    Inputs[i]="${Inputs[$i]}|$forced|$title"
   done
 }
 
