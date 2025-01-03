@@ -45,12 +45,14 @@ if [ $# -lt 6 ]; then
 fi
 
 while getopts ":s:i:o:h" opt; do
-  case "$opt" in
+  case $opt in
     s) # get subtitles list from individual subtitle file or directory
-      if [ -f "$OPTARG" ] && [[ "$OPTARG" =~ .*\.(sup|textst|ogg|ssa|ass|srt|sub|idx|usf|vtt)$ ]]; then
+      # don't include .sub, only .idx, but later ensure .sub is in the same directory as the .idx.
+      # mkvmerge will pull it automatically
+      if [ -f "$OPTARG" ] && [[ "$OPTARG" =~ .*\.(sup|textst|ogg|ssa|ass|srt|idx|usf|vtt)$ ]]; then
         Subtitles+=("$OPTARG")
       elif [ -d "$OPTARG" ]; then
-        Subtitles+=("$OPTARG"/*.{sup,textst,ogg,ssa,ass,srt,sub,idx,usf,vtt})
+        Subtitles+=("$OPTARG"/*.{sup,textst,ogg,ssa,ass,srt,idx,usf,vtt})
       else
         echo -e "\033[31m$OPTARG is not a valid subtitle file/directory!\033[0m" >&2
         exit 1
