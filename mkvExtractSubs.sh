@@ -12,6 +12,7 @@ Destination=
 
 Usage(){
   echo "Extract all subtitle streams from input Matroska files."
+  echo "Output file names: \"sourceName {sub-[<lang code>].t<stream id><.optional forced><.optional commentary>}.<extension>\""
   echo "Input an array of files or directories to check."
   echo "Directories are depth-1 searched for mkv files."
   echo "Depends: mkvtoolnix, jq"
@@ -49,7 +50,7 @@ GetExtension() {
 # Checks for valid Matroska file and gets subtitle track ids from mkvmerge identify.
 # Prints to stderr if file is not valid.
 # Finally extracts all subtitle tracks (if present) from file.
-# Output file names: {sourceName}{"_forced" if forced}{"_commentary" if commentary}_[{language}]_t{trackID}.{extension}
+# Output file names: "sourceName {sub-[<lang code>].t<stream id><.optional forced><.optional commentary>}.<extension>" 
 # Extension is chosen automatically by mkvextract (this does not appear to always be the case)
 # Does not return anything.
 ExtractSubs(){
@@ -99,7 +100,7 @@ ExtractSubs(){
 
     # transform default+forced -> forced
     if [[ "$default" == "true" ]] || [[ "$forced" == "true" ]]; then
-      forced="_forced"
+      forced=".forced"
     else
       forced=""
     fi
@@ -107,7 +108,7 @@ ExtractSubs(){
     # transform boolean comm to string
     # will either be true or null
     if [[ "$comm" == "true" ]]; then
-      comm="_commentary"
+      comm=".commentary"
     else
       comm=""
     fi
@@ -118,7 +119,7 @@ ExtractSubs(){
     # pad id
     idpadded="$(printf '%02d' "$id")"
 
-    tracks+=("${id}:${Destination}/${filename}${forced}${comm}_[${lang}]_t${idpadded}${codec}")
+    tracks+=("${id}:${Destination}/${filename} {sub-[${lang}].t${idpadded}${forced}${comm}}${codec}")
   done
 
   # perform extract
