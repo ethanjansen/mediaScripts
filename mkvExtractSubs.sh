@@ -76,7 +76,7 @@ ExtractSubs(){
   # check if valid file
   recognized="$(echo "$info" | jq -rM '.container.recognized')"
   supported="$(echo "$info" | jq -rM '.container.supported')"
-  if [[ "$recognized" != "true" ]] && [[ "$supported" != "true" ]]; then
+  if [[ "$recognized" != "true" ]] || [[ "$supported" != "true" ]]; then
     echo -e "\033[31mError: Unable to read Matroska file $1\033[0m" >&2
     return
   fi
