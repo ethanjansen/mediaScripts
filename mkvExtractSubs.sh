@@ -49,11 +49,20 @@ GetExtension() {
 # Checks for valid Matroska file and gets subtitle track ids from mkvmerge identify.
 # Prints to stderr if file is not valid.
 # Finally extracts all subtitle tracks (if present) from file.
-# Output file names: {sourceName}_{"forced" if forced}_[{language}]_t{trackID}.{extension}
+# Output file names: {sourceName}{"_forced" if forced}{"_commentary" if commentary}_[{language}]_t{trackID}.{extension}
 # Extension is chosen automatically by mkvextract (this does not appear to always be the case)
 # Does not return anything.
 ExtractSubs(){
-  local info recognized supported count id idpadded default forced lang codec filename 
+  # for file information
+  local info count filename 
+  # for testing Matroska file
+  local recognized supported
+  # for subtitle info
+  local id default forced lang codec comm
+  # for extra subtitle info
+  local idpadded
+
+  # to hold mkvextract track options
   local tracks=()
 
   # strip extension from filename
@@ -86,6 +95,7 @@ ExtractSubs(){
     forced="$(echo "$info" | jq -rM ".[$i].properties.forced_track")"
     lang="$(echo "$info" | jq -rM ".[$i].properties.language")"
     codec="$(echo "$info" | jq -rM ".[$i].properties.codec_id")"
+    comm="$(echo "$info" | jq -rM ".[$i].properties.flag_commentary")"
 
     # transform default+forced -> forced
     if [[ "$default" == "true" ]] || [[ "$forced" == "true" ]]; then
@@ -94,13 +104,21 @@ ExtractSubs(){
       forced=""
     fi
 
+    # transform boolean comm to string
+    # will either be true or null
+    if [[ "$comm" == "true" ]]; then
+      comm="_commentary"
+    else
+      comm=""
+    fi
+
     # get output file extension
     codec="$(GetExtension "$codec")"
 
     # pad id
     idpadded="$(printf '%02d' "$id")"
 
-    tracks+=("${id}:${Destination}/${filename}${forced}_[${lang}]_t${idpadded}${codec}")
+    tracks+=("${id}:${Destination}/${filename}${forced}${comm}_[${lang}]_t${idpadded}${codec}")
   done
 
   # perform extract
