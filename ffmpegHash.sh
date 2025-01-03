@@ -79,8 +79,11 @@ SortArrays(){
 # This does not indicate what it conflicts with,
 # but the arrays should already be sorted, thus making it clear.
 PrintConflicts(){
-  # hash, filename, streamNumber
+  # hash, filename, streamNumber, numberConflicts
   local h count
+
+  echo "Hash|FileName|StreamNumber|NumberConflicts"
+
   for item; do
     IFS=$'|' read -r h _ <<< "$item"
     count=$(printf -- '%s\n' "$@" | grep -cF "$h")
