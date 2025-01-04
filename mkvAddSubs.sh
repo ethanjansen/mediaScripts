@@ -6,6 +6,8 @@ shopt -s nullglob
 
 ################### Global Variables ######################
 
+QUIET=1
+
 Subtitles=()
 Inputs=()
 Destination=
@@ -21,12 +23,27 @@ Usage(){
   echo "Subtitle stream order will follow file name (t##), and follow any existing subtitles."
   echo "Depends: mkvtoolnix, jq"
   echo
-  echo "Syntax: mkvAddSubs.sh -s <subtitle file/directory> -i <source mkv file/directory> -o <destination folder>"
+  echo "Syntax: mkvAddSubs.sh -s <subtitle file/directory> -i <source mkv file/directory> -o <destination folder> [-q]"
   echo "Options:"
   echo "-s      Subtitle file list, or subtitle directory. Use option multiple times for multiple subtitles."
   echo "-i      Input mkv file (or directory of files) to add subtitles to. Use option multiple times for multiple inputs."
   echo "-o      Output destination folder."
+  echo "-q      Quiet. Do not print non-fatal error/warning messages. Errors from mkvmerge are still printed."
   echo "-h      Print this help message."
+}
+
+# Print warnings (non-fatal errors)
+LogWarning(){
+  if [ "$QUIET" -eq 1 ]; then
+    echo -e "\033[33m$1\033[0m" >&2 # print yellow to stderr
+  fi
+}
+
+# Print (fatal) errors
+LogError(){
+  # print red to stderr and exit
+  echo -e "\033[31m$1\033[0m" >&2
+  exit 1
 }
 
 # Sort input arrays
@@ -56,7 +73,7 @@ ParseMKV(){
     recognized="$(echo "$info" | jq -rM '.container.recognized')"
     supported="$(echo "$info" | jq -rM '.container.supported')"
     if [[ "$recognized" != "true" ]] || [[ "$supported" != "true" ]]; then
-      echo -e "\033[31mError: Unable to read Matroska file ${Inputs[$i]}\033[0m" >&2
+      LogWarning "Error: Unable to read Matroska file ${Inputs[$i]}"
       unset "Inputs[i]"
       continue
     fi
@@ -100,7 +117,7 @@ ParseSub(){
   for i in "${!Subtitles[@]}"; do
     # check if improperly named subtitle file
     if ! [[ "${Subtitles[$i]}" =~ .*\{sub-t[0-9]{2}\.\[[a-z]{3}\].*\} ]]; then
-      echo -e "\033[31mImproperly named subtitle: ${Subtitles[$i]}\033[0m" >&2
+      LogWarning "Improperly named subtitle: ${Subtitles[$i]}"
       unset "Subtitles[i]"
       continue
     fi
@@ -111,7 +128,7 @@ ParseSub(){
     if [[ "$subInfo" =~ .idx$ ]]; then
       # find if .sub exists in same folder
       if ! [ -f "${Subtitles[$i]%.*}.sub" ]; then
-        echo -e "\033[31mMissing .sub file corresponding to ${Subtitles[$i]}\033[0m" >&2
+        LogWarning "Missing .sub file corresponding to ${Subtitles[$i]}"
         unset "Subtitles[i]"
         continue
       fi
@@ -156,7 +173,7 @@ Merge(){
     # get matching subtitles
     readarray -t subList < <(printf -- '%s\n' "${Subtitles[@]}" | grep -F -- "$fileTitle")
     if [ "${#subList[@]}" -eq 0 ]; then
-      echo -e "\033[31mNo subtitles found for $inputFile\033[0m" >&2
+      LogWarning "No subtitles found for $inputFile"
       continue
     fi
     for sub in "${subList[@]}"; do
@@ -172,7 +189,7 @@ Merge(){
       fi
 
       # create option string for sub - should already be sorted
-      mergeStrings+=("--default-track-flag -1:${forced} --forced-display-flag -1:${forced} --commentary-flag -1:${commentary} --language -1:${lang} --track-name -1:${subTitle} ${subFile}")
+      mergeStrings+=("--default-track-flag -1:${forced}" "--forced-display-flag -1:${forced}" "--commentary-flag -1:${commentary}" "--language -1:${lang}" "--track-name -1:${subTitle}" "${subFile}")
     done
 
     # perform mkvmerge
@@ -189,7 +206,7 @@ FindLeftOutSubs(){
     IFS=$'|' read -r filename _ <<< "$sub"
     matchCount="$(echo "${Inputs[@]}" | grep -Fc "$(basename "${sub% \{sub-*}")")"
     if [ "$matchCount" -eq 0 ]; then
-      echo -e "\033[31mNo matching Matroska file for subtitle $filename\033[0m" >&2
+      LogWarning "No matching Matroska file for subtitle $filename"
     fi
   done
 }
@@ -202,7 +219,7 @@ if [ $# -lt 6 ]; then
   exit 1
 fi
 
-while getopts ":s:i:o:h" opt; do
+while getopts ":s:i:o:qh" opt; do
   case $opt in
     s) # get subtitles list from individual subtitle file or directory
       # don't include .sub, only .idx, but later ensure .sub is in the same directory as the .idx.
@@ -212,8 +229,7 @@ while getopts ":s:i:o:h" opt; do
       elif [ -d "$OPTARG" ]; then
         Subtitles+=("$OPTARG"/*.{sup,textst,ogg,ssa,ass,srt,idx,usf,vtt})
       else
-        echo -e "\033[31m$OPTARG is not a valid subtitle file/directory!\033[0m" >&2
-        exit 1
+        LogError "$OPTARG is not a valid subtitle file/directory!"
       fi;;
     i) # get matroska input list from individual matroska file or directory
       if [ -f "$OPTARG" ] && [[ "$OPTARG" =~ .*\.(mkv|mk3d|mka|mks)$ ]]; then
@@ -221,43 +237,38 @@ while getopts ":s:i:o:h" opt; do
       elif [ -d "$OPTARG" ]; then
         Inputs+=("$OPTARG"/*.{mkv,mk3d,mka,mks})
       else
-        echo -e "\033[31m$OPTARG is not a valid Matroska file/directory!\033[0m" >&2
-        exit 1
+        LogError "$OPTARG is not a valid Matroska file/directory!"
       fi;;
     o) # get and test destination
       if [ -n "$Destination" ]; then
-        echo -e "\033[31mCan only handle one destination directory!\033[0m" >&2
-        exit 1
+        LogError "Can only handle one destination directory!"
       fi
       
       if ! [ -d "$OPTARG" ]; then
-        echo -e "\033[31m$OPTARG is not a valid destination!\033[0m" >&2
-        exit 1
+        LogError "$OPTARG is not a valid destination!"
       fi
 
       Destination="$(realpath "$OPTARG")"
       echo "Using destination: $Destination";;
+    q) # quiet warnings
+      QUIET=0;;
     h) # print help message
       Usage
       exit 1;;
     \?) # invalid option 
-      echo -e "\033[31mInvalid option: $opt\033[0m" >&2
-      exit 1;;
+      LogError "Invalid option: $opt";;
   esac
 done
 
 # test that subtitles/inputs/output are all populated
 if [ -z "$Destination" ]; then
-  echo -e "\033[31mNo destination folder specified!\033[0m" >&2
-  exit 1
+  LogError "No destination folder specified!"
 fi
 if [ ${#Inputs[@]} -eq 0 ]; then
-  echo -e "\033[31mNo valid Matroska inputs specified!\033[0m" >&2 
-  exit 1
+  LogError "No valid Matroska inputs specified!" 
 fi
 if [ ${#Subtitles[@]} -eq 0 ]; then
-  echo -e "\033[31mNo valid subtitles specified!\033[0m" >&2
-  exit 1
+  LogError "No valid subtitles specified!"
 fi
 
 # test inputs
@@ -272,8 +283,3 @@ Merge
 
 # Check if any left out subtitles
 FindLeftOutSubs
-
-# testing
-# printf -- '%s\n' "${Inputs[@]}"
-# echo
-# printf -- '%s\n' "${Subtitles[@]}"
