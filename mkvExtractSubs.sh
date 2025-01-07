@@ -145,7 +145,7 @@ Destination="$(realpath "$Destination")"
 echo "Using destination: $Destination"
 
 # read arguments and hash files
-for arg in "${@:1:$#}"; do
+for arg in "${@:1:$#-1}"; do
   echo
   if [ -f "$arg" ] && [[ "$arg" =~ .*\.(mkv|mk3d|mka|mks)$ ]]; then # Handle files
     echo "Processing file: $arg"
