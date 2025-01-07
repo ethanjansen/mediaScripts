@@ -58,7 +58,7 @@ SortArrays(){
 # Check for any existing default/forced subs
 ParseMKV(){
   # file info
-  local info title
+  local info filebasename title
   # for testing Matroska file
   local recognized supported
   # to test if default/forced sub present
@@ -67,7 +67,8 @@ ParseMKV(){
   # loop through inputs
   for i in "${!Inputs[@]}"; do
     info="$(mkvmerge -J "${Inputs[$i]}")"
-    title="$(basename "${Inputs[$i]%.*}")"
+    filebasename="$(basename "${Inputs[$i]}")"
+    title="${filebasename%.*}"
     
     # check if valid
     recognized="$(echo "$info" | jq -rM '.container.recognized')"
@@ -89,8 +90,8 @@ ParseMKV(){
       forced=1
     fi
 
-    # save back to inputs with format: "filename|forced|title"
-    Inputs[i]="${Inputs[$i]}|$forced|$title"
+    # save back to inputs with format: "filebasename|filename|forced|title"
+    Inputs[i]="$filebasename|${Inputs[$i]}|$forced|$title"
   done
 }
 
@@ -111,6 +112,8 @@ CheckLang(){
 # Also, if .idx check if .sub exists
 # This may still end with multiple forced subs per title, plus if the title already has a forced/default sub
 ParseSub(){
+  # file information
+  local filebasename
   # subtitle information
   local subInfo lang title forced commentary
 
@@ -122,6 +125,7 @@ ParseSub(){
       continue
     fi
 
+    filebasename="$(basename "${Subtitles[$i]}")"
     subInfo="${Subtitles[$i]##*\{sub-}" 
 
     # check if idx
@@ -147,8 +151,8 @@ ParseSub(){
       title="$(CheckLang "$lang")"
     fi
 
-    # save back to Subtitles with format: "filename|forced|commentary|lang|title"
-    Subtitles[i]="${Subtitles[$i]}|$forced|$commentary|$lang|$title"
+    # save back to Subtitles with format: "filebasename|filename|forced|commentary|lang|title"
+    Subtitles[i]="$filebasename|${Subtitles[$i]}|$forced|$commentary|$lang|$title"
   done
 }
 
@@ -163,12 +167,10 @@ Merge(){
     # mkvmerge options for specific input
     local mergeStrings=()
     # metadata temp
-    local lang subTitle forced commentary subFile fileTitle forcedPresent inputFile inputFilename
+    local lang subTitle forced commentary subFile fileTitle forcedPresent inputFile inputFilename _ 
   
     # get input info
-    IFS=$'|' read -r inputFile forcedPresent fileTitle <<< "$input"
-
-    inputFilename="$(basename "$inputFile")"
+    IFS=$'|' read -r inputFilename inputFile forcedPresent fileTitle <<< "$input"
 
     # get matching subtitles
     readarray -t subList < <(printf -- '%s\n' "${Subtitles[@]}" | grep -F -- "$fileTitle")
@@ -178,7 +180,7 @@ Merge(){
     fi
     for sub in "${subList[@]}"; do
       # get sub info
-      IFS=$'|' read -r subFile forced commentary lang subTitle <<< "$sub"
+      IFS=$'|' read -r _ subFile forced commentary lang subTitle <<< "$sub"
 
       # check if forced - set to 0 if already present
       if [ "$forcedPresent" -eq 0 ] && [ "$forced" -eq 1 ]; then
@@ -193,6 +195,7 @@ Merge(){
     done
 
     # perform mkvmerge
+    echo "Creating ${Destination}/${inputFilename}"
     #testing
     echo "mkvmerge --flush-on-close -o ${Destination}/${inputFilename} --title $fileTitle $inputFile ${mergeStrings[@]}"
   done
@@ -201,10 +204,10 @@ Merge(){
 # Find subtitles missing a matching Matroska file
 FindLeftOutSubs(){
   for sub in "${Subtitles[@]}"; do
-    local filename _
+    local filebasename filename _
     local matchCount
-    IFS=$'|' read -r filename _ <<< "$sub"
-    matchCount="$(echo "${Inputs[@]}" | grep -Fc "$(basename "${sub% \{sub-*}")")"
+    IFS=$'|' read -r filebasename filename _ <<< "$sub"
+    matchCount="$(echo "${Inputs[@]}" | grep -Fc "${filebasename% \{sub-*}")"
     if [ "$matchCount" -eq 0 ]; then
       LogWarning "No matching Matroska file for subtitle $filename"
     fi
