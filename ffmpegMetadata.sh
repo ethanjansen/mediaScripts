@@ -3,6 +3,11 @@
 # Requires `ffmpeg/ffmprobe` and `bat` to paginate output.
 # By: Ethan Jansen
 
+# Known issues:
+# - Strips off language_ietf stream tag from output report for mkv files
+# - Does not include language "und" tag in output report
+
+
 Usage(){
   echo "Output specific information about a media file using ffmpeg/ffprobe."
   echo "Depends: ffmpeg/ffmprobe and bat."
