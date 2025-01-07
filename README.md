@@ -18,7 +18,7 @@
 #### [mkvAddSubs](./mkvAddSubs.sh)
 
 * Add subtitles to Matroska files in batch mode.
-* Expects matching file names and appropriate "{subs-t<id>.\[<lang>\].<forced>.<commentary}.extension" tags on subtitles.
+* Expects matching file names and appropriate "{subs-t\<id\>.\[\<lang\>\].\<forced\>.\<commentary\>}.\<extension\>" tags on subtitles.
 * File names cannot contain vertical bar "|".
 * Requires `mkvtoolnix` and `jq`
 * Usage: `mkvAddSubs.sh <subtitle file/directory> -i <source mkv file/directory> -o <destination folder> [-q]`
