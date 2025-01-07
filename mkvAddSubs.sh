@@ -28,7 +28,7 @@ Usage(){
   echo "-s      Subtitle file list, or subtitle directory. Use option multiple times for multiple subtitles."
   echo "-i      Input mkv file (or directory of files) to add subtitles to. Use option multiple times for multiple inputs."
   echo "-o      Output destination folder."
-  echo "-q      Quiet. Do not print non-fatal error/warning messages. Errors from mkvmerge are still printed."
+  echo "-q      Quiet. Do not print non-fatal error/warning messages. Errors from mkvmerge are still printed. Normal output is also still printed."
   echo "-h      Print this help message."
 }
 
@@ -183,21 +183,36 @@ Merge(){
       IFS=$'|' read -r _ subFile forced commentary lang subTitle <<< "$sub"
 
       # check if forced - set to 0 if already present
-      if [ "$forcedPresent" -eq 0 ] && [ "$forced" -eq 1 ]; then
-        forced=0
-        if [[ "$subTitle" = "Forced" ]]; then
-          subTitle="$(CheckLang "$lang")"
+      if [ "$forced" -eq 1 ]; then
+        if [ "$forcedPresent" -eq 0 ]; then
+          forced=0
+          if [[ "$subTitle" = "Forced" ]]; then
+            subTitle="$(CheckLang "$lang")"
+          fi
         fi
+        forcedPresent=0
       fi
 
       # create option string for sub - should already be sorted
-      mergeStrings+=("--default-track-flag -1:${forced}" "--forced-display-flag -1:${forced}" "--commentary-flag -1:${commentary}" "--language -1:${lang}" "--track-name -1:${subTitle}" "${subFile}")
+      mergeStrings+=("--default-track-flag"
+                     "-1:${forced}"
+                     "--forced-display-flag"
+                     "-1:${forced}"
+                     "--commentary-flag"
+                     "-1:${commentary}"
+                     "--language"
+                     "-1:${lang}"
+                     "--track-name"
+                     "-1:${subTitle}"
+                     "${subFile}"
+                    )
     done
 
     # perform mkvmerge
+    echo
     echo "Creating ${Destination}/${inputFilename}"
-    #testing
-    echo "mkvmerge --flush-on-close -o ${Destination}/${inputFilename} --title $fileTitle $inputFile ${mergeStrings[@]}"
+
+    mkvmerge --flush-on-close -o "${Destination}/${inputFilename}" --title "$fileTitle" "$inputFile" "${mergeStrings[@]}"
   done
 }
 
